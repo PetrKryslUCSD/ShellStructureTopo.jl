@@ -114,3 +114,75 @@ end
 end
 using .mt004
 mt004.test()
+
+
+module mt005
+using StaticArrays
+using MeshCore: VecAttrib
+using MeshCore: P1, L2, T3, ShapeColl, manifdim, nfacets, facetdesc, nshapes
+using MeshCore: Q4ShapeDesc, shapedesc, n1storderv, nridges, nshifts, nvertices
+using MeshCore: IncRel, attribute
+using MeshCore: ir_skeleton, ir_transpose, ir_bbyfacets
+using MeshSteward: T3block
+using MeshSteward: vtkwrite
+using MeshSteward: import_ABAQUS, vtkwrite, export_MESH, import_MESH
+using ShellStructureTopo: smesh_orient
+using Test
+function test()
+    connectivities = import_ABAQUS(joinpath("models", "extrusion.inp"))
+    @test length(connectivities) == 1
+    t2v = connectivities[1]
+    e2v = ir_skeleton(t2v)
+    println(summary(e2v))
+    t2e = ir_bbyfacets(t2v, e2v)
+    orientedt2v, orientable = smesh_orient(t2v)
+    orientedt2v.right.attributes["geom"] = t2v.right.attributes["geom"]
+    vtkwrite("mt005", orientedt2v)
+    # try rm("mt005.vtu"); catch end
+    true
+end
+end
+using .mt005
+mt005.test()
+
+
+module mt006
+using Random
+using StaticArrays
+using MeshCore: VecAttrib
+using MeshCore: P1, L2, T3, ShapeColl, manifdim, nfacets, facetdesc, nshapes
+using MeshCore: Q4ShapeDesc, shapedesc, n1storderv, nridges, nshifts, nvertices
+using MeshCore: IncRel, attribute
+using MeshCore: ir_skeleton, ir_transpose, ir_bbyfacets
+using MeshSteward: T3block
+using MeshSteward: vtkwrite
+using MeshSteward: import_ABAQUS, vtkwrite, export_MESH, import_MESH
+using ShellStructureTopo: smesh_orient
+using Test
+function normal(c, geom)
+    StaticArrays.cross(geom[c[2]] - geom[c[1]], geom[c[3]] - geom[c[1]])
+end
+function test()
+    connectivities = import_ABAQUS(joinpath("models", "extrusion.inp"))
+    @test length(connectivities) == 1
+    t2v = connectivities[1]
+    for k in 1:nshapes(t2v.left)
+        t2v._v[k] = shuffle!(Vector(t2v._v[k]))
+    end
+    e2v = ir_skeleton(t2v)
+    println(summary(e2v))
+    t2e = ir_bbyfacets(t2v, e2v)
+    orientedt2v, orientable = smesh_orient(t2v)
+    orientedt2v.right.attributes["geom"] = t2v.right.attributes["geom"]
+    geom = orientedt2v.right.attributes["geom"]
+    t2v.right.attributes["normals"] = VecAttrib([normal(t2v[i], geom) for i in 1:nshapes(t2v.left)])
+    vtkwrite("mt006-inconsistent", t2v, [(name = "normals", )])
+    # try rm("mt006-inconsistent.vtu"); catch end
+    orientedt2v.right.attributes["normals"] = VecAttrib([normal(orientedt2v[i], geom) for i in 1:nshapes(orientedt2v.left)])
+    vtkwrite("mt006-consistent", orientedt2v, [(name = "normals", )])
+    # try rm("mt006-consistent.vtu"); catch end
+    true
+end
+end
+using .mt006
+mt006.test()
