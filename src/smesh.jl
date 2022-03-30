@@ -16,7 +16,8 @@ Return
     This would be false for a Mobius strip, for instance.
 
 This is a purely topological operation. Creases in the surface are not
-recognized as edges.
+recognized as edges. The operation proceeds by flooding the surface across
+manifold edges, stopping at sheet or non-manifold edges.
 """
 function smesh_orient(t2v)
     orientable = true
@@ -65,7 +66,7 @@ function _iscompatible(je, kes)
     return false
 end
 
-function _deduce_order(je, kes)
+function _deduce_edge_order(je, kes)
     if _iscompatible(je, kes)
         return kes
     else 
@@ -87,7 +88,7 @@ function _orient_face!(ot2ev, surfid, t2v, i, t2e, e2t)
             if length(e2t[eid]) == 2 # is this a manifold edge?
                 k = e2t[eid][1] == j ? e2t[eid][2] : e2t[eid][1]
                 if surfid[k] == 0
-                    ot2ev[k] = _deduce_order(ot2ev[j][e], ot2ev[k]) 
+                    ot2ev[k] = _deduce_edge_order(ot2ev[j][e], ot2ev[k]) 
                     surfid[k] = currsurfid
                     push!(stack, k)
                 else
