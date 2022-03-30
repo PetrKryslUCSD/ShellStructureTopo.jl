@@ -6,14 +6,22 @@ using MeshCore: P1, L2, T3, ShapeColl, manifdim, nfacets, facetdesc, nshapes
 using MeshCore: IncRel
 
 """
-    smesh_orient
+    smesh_orient(t2v)
 
 Orient surface mesh.
+
+Return
+- `orientedt2v`: oriented incidence relation
+- `orientable`: Can the surface mesh be oriented? Bool flag.
+    This would be false for a Mobius strip, for instance.
+
+This is a purely topological operation. Creases in the surface are not
+recognized as edges.
 """
 function smesh_orient(t2v)
     orientable = true
     all_oriented = false
-    tfid = fill(0, nshapes(t2v.left))
+    surfid = fill(0, nshapes(t2v.left))
     e2v = ir_skeleton(t2v)
     t2e = ir_bbyfacets(t2v, e2v)
     ot2ev = [SVector(t2e[i]) for i in 1:nshapes(t2e.left)]
@@ -21,8 +29,8 @@ function smesh_orient(t2v)
     while !all_oriented
         all_oriented = true
         for i in 1:nshapes(t2v.left)
-            if tfid[i] == 0
-                orientable = orientable && _orient_face!(ot2ev, tfid, t2v, i, t2e, e2t);
+            if surfid[i] == 0
+                orientable = orientable && _orient_face!(ot2ev, surfid, t2v, i, t2e, e2t);
                 all_oriented = false;
                 break;
             end
@@ -32,7 +40,7 @@ function smesh_orient(t2v)
     vrts = ShapeColl(P1, nshapes(t2v.right))
     oc = [_vertfromedges(ot2ev[i], e2v) for i in 1:length(ot2ev)]
     orientedt2v = IncRel(elements, vrts, oc)
-    orientedt2v.left.attributes["tfid"] = VecAttrib(tfid)
+    orientedt2v.left.attributes["surfid"] = VecAttrib(surfid)
     return orientedt2v, orientable
 end
 
@@ -65,11 +73,11 @@ function _deduce_order(je, kes)
     end
 end
 
-function _orient_face!(ot2ev, tfid, t2v, i, t2e, e2t)
+function _orient_face!(ot2ev, surfid, t2v, i, t2e, e2t)
     orientable = true
-    currtfid = maximum(tfid) + 1
+    currsurfid = maximum(surfid) + 1
     ot2ev[i] = t2e[i] # First Triangle: Accept its default orientation
-    tfid[i] = currtfid
+    surfid[i] = currsurfid
     stack = Int[]
     push!(stack, i)
     while (!isempty(stack))
@@ -78,9 +86,9 @@ function _orient_face!(ot2ev, tfid, t2v, i, t2e, e2t)
             eid = abs(ot2ev[j][e])
             if length(e2t[eid]) == 2 # is this a manifold edge?
                 k = e2t[eid][1] == j ? e2t[eid][2] : e2t[eid][1]
-                if tfid[k] == 0
+                if surfid[k] == 0
                     ot2ev[k] = _deduce_order(ot2ev[j][e], ot2ev[k]) 
-                    tfid[k] = currtfid
+                    surfid[k] = currsurfid
                     push!(stack, k)
                 else
                     orientable = orientable && _iscompatible(ot2ev[j][e], ot2ev[k])
