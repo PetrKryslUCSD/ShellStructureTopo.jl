@@ -1,4 +1,4 @@
 using Test
-@time @testset "Fundamentals" begin
-    include("test_fundamentals.jl")
+@time @testset "All Tests" begin
+    include("test_all.jl")
 end
