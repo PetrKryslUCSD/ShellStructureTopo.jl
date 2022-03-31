@@ -6,7 +6,7 @@ using MeshCore: P1, L2, T3, ShapeColl, manifdim, nfacets, facetdesc, nshapes
 using MeshCore: IncRel
 
 """
-    smesh_orient(t2v)
+    orient_surface_mesh(t2v)
 
 Orient surface mesh.
 
@@ -18,8 +18,12 @@ Return
 This is a purely topological operation. Creases in the surface are not
 recognized as edges. The operation proceeds by flooding the surface across
 manifold edges, stopping at sheet or non-manifold edges.
+
+The incidence relation `orientedt2v` includes an attribute for each triangle
+that provides the surface id to which the triangle belongs
+(`orientedt2v.left.attributes["surfid"]`).
 """
-function smesh_orient(t2v)
+function orient_surface_mesh(t2v)
     orientable = true
     all_oriented = false
     surfid = fill(0, nshapes(t2v.left))
@@ -31,7 +35,7 @@ function smesh_orient(t2v)
         all_oriented = true
         for i in 1:nshapes(t2v.left)
             if surfid[i] == 0
-                orientable = orientable && _orient_face!(ot2ev, surfid, t2v, i, t2e, e2t);
+                orientable = orientable && _orient_surface!(ot2ev, surfid, t2v, i, t2e, e2t);
                 all_oriented = false;
                 break;
             end
@@ -74,7 +78,7 @@ function _deduce_edge_order(je, kes)
     end
 end
 
-function _orient_face!(ot2ev, surfid, t2v, i, t2e, e2t)
+function _orient_surface!(ot2ev, surfid, t2v, i, t2e, e2t)
     orientable = true
     currsurfid = maximum(surfid) + 1
     ot2ev[i] = t2e[i] # First Triangle: Accept its default orientation

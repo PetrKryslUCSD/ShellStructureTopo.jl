@@ -41,7 +41,7 @@ using MeshCore: P1, L2, T3, ShapeColl, manifdim, nfacets, facetdesc, nshapes
 using MeshCore: Q4ShapeDesc, shapedesc, n1storderv, nridges, nshifts, nvertices
 using MeshCore: IncRel, attribute
 using MeshCore: ir_skeleton, ir_transpose, ir_bbyfacets
-using ShellStructureTopo: smesh_orient
+using ShellStructureTopo: orient_surface_mesh
 using Test
 function test()
     a = VecAttrib([1, 2, 4]);
@@ -54,7 +54,7 @@ function test()
     e2v = ir_skeleton(t2v)
     # println(summary(e2v))
     t2e = ir_bbyfacets(t2v, e2v)
-    orientedt2v, orientable = smesh_orient(t2v)
+    orientedt2v, orientable = orient_surface_mesh(t2v)
     @test length(unique(attribute(orientedt2v.left, "surfid"))) == 1
     # @show orientedt2v, orientable
     true
@@ -70,7 +70,7 @@ using MeshCore: P1, L2, T3, ShapeColl, manifdim, nfacets, facetdesc, nshapes
 using MeshCore: Q4ShapeDesc, shapedesc, n1storderv, nridges, nshifts, nvertices
 using MeshCore: IncRel, attribute
 using MeshCore: ir_skeleton, ir_transpose, ir_bbyfacets
-using ShellStructureTopo: smesh_orient
+using ShellStructureTopo: orient_surface_mesh
 using Test
 function test()
     c = [(1, 2, 3), (4, 3, 1)]
@@ -81,7 +81,7 @@ function test()
     e2v = ir_skeleton(t2v)
     # println(summary(e2v))
     t2e = ir_bbyfacets(t2v, e2v)
-    orientedt2v, orientable = smesh_orient(t2v)
+    orientedt2v, orientable = orient_surface_mesh(t2v)
     @test length(unique(attribute(orientedt2v.left, "surfid"))) == 1
     # @show t2v._v, orientedt2v._v, orientable
     true
@@ -99,14 +99,14 @@ using MeshCore: IncRel, attribute
 using MeshCore: ir_skeleton, ir_transpose, ir_bbyfacets
 using MeshSteward: T3block
 using MeshSteward: vtkwrite
-using ShellStructureTopo: smesh_orient
+using ShellStructureTopo: orient_surface_mesh
 using Test
 function test()
     t2v = T3block(1.0, 2.0, 3, 6)
     e2v = ir_skeleton(t2v)
     # println(summary(e2v))
     t2e = ir_bbyfacets(t2v, e2v)
-    orientedt2v, orientable = smesh_orient(t2v)
+    orientedt2v, orientable = orient_surface_mesh(t2v)
     @test length(unique(attribute(orientedt2v.left, "surfid"))) == 1
     # @show t2v._v, orientedt2v._v, orientable
     orientedt2v.right.attributes["geom"] = t2v.right.attributes["geom"]
@@ -129,7 +129,7 @@ using MeshCore: ir_skeleton, ir_transpose, ir_bbyfacets
 using MeshSteward: T3block
 using MeshSteward: vtkwrite
 using MeshSteward: import_ABAQUS, vtkwrite, export_MESH, import_MESH
-using ShellStructureTopo: smesh_orient
+using ShellStructureTopo: orient_surface_mesh
 using Test
 function test()
     connectivities = import_ABAQUS(joinpath("../models", "extrusion.inp"))
@@ -138,7 +138,7 @@ function test()
     e2v = ir_skeleton(t2v)
     # println(summary(e2v))
     t2e = ir_bbyfacets(t2v, e2v)
-    orientedt2v, orientable = smesh_orient(t2v)
+    orientedt2v, orientable = orient_surface_mesh(t2v)
     @test length(unique(attribute(orientedt2v.left, "surfid"))) == 3
     orientedt2v.right.attributes["geom"] = t2v.right.attributes["geom"]
     vtkwrite("mt005", orientedt2v)
@@ -161,7 +161,7 @@ using MeshCore: ir_skeleton, ir_transpose, ir_bbyfacets
 using MeshSteward: T3block
 using MeshSteward: vtkwrite
 using MeshSteward: import_ABAQUS, vtkwrite, export_MESH, import_MESH
-using ShellStructureTopo: smesh_orient
+using ShellStructureTopo: orient_surface_mesh
 using Test
 function normal(c, geom)
     StaticArrays.cross(geom[c[2]] - geom[c[1]], geom[c[3]] - geom[c[1]])
@@ -176,7 +176,7 @@ function test()
     e2v = ir_skeleton(t2v)
     # println(summary(e2v))
     t2e = ir_bbyfacets(t2v, e2v)
-    orientedt2v, orientable = smesh_orient(t2v)
+    orientedt2v, orientable = orient_surface_mesh(t2v)
     @test length(unique(attribute(orientedt2v.left, "surfid"))) == 3
     orientedt2v.right.attributes["geom"] = t2v.right.attributes["geom"]
     geom = orientedt2v.right.attributes["geom"]
