@@ -9,5 +9,6 @@ The purpose of this package is to detect topological classification of a
 triangular surface mesh. For instance, the orientation of the triangles can be
 unified across the surface mesh. The topological faces can be identified.
 
-![Sample of detected topological faces](sample_topology.png)
+![Sample of unified normals](sample_normals50.png)
+![Sample of detected topological faces](sample_topology50.png)
 
