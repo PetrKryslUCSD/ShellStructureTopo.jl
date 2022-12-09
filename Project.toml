@@ -4,6 +4,7 @@ authors = ["Petr Krysl <pkrysl@ucsd.edu>"]
 version = "0.1.0"
 
 [deps]
+FinEtools = "91bb5406-6c9a-523d-811d-0644c4229550"
 Infiltrator = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
 MeshCore = "43a99bba-f459-4d0e-8139-f3df11d847d4"
 MeshSteward = "ffa89bc3-d1bd-4aea-b9f7-e9902d9f56ab"
@@ -11,3 +12,10 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+Infiltrator = "^1.2"
+MeshCore = "^1.2"
+MeshSteward = "^1.2"
+Revise = "^3.3"
+StaticArrays = "^1.4"
