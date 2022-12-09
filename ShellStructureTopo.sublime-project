@@ -4,11 +4,14 @@
 		{
 			"path": ".",
 		},
-		{
+          {
+			"path": "C:\\Users\\pkonl\\Documents\\00WIP\\MeshCore.jl",
+		},
+      {
 			"path": "C:\\Users\\pkonl\\Documents\\00WIP\\MeshSteward.jl",
 		},
           {
-			"path": "C:\\Users\\pkonl\\Documents\\00WIP\\MeshCore.jl"
+			"path": "C:\\Users\\pkonl\\Documents\\00WIP\\FinEtools.jl"
 		},
      ],
         "settings": {
