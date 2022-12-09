@@ -283,3 +283,41 @@ end
 end
 using .mt008
 mt008.test()
+
+
+module mt009
+using Random
+using FinEtools
+using FinEtools.MeshExportModule: VTK
+using FinEtools.MeshImportModule
+using ShellStructureTopo: to_core
+using MeshSteward: vtkwrite
+using Test
+function test()
+    output = MeshImportModule.import_ABAQUS(joinpath("../models", "extrusion.inp"))
+    fens, fes = output["fens"], output["fesets"][1]
+    t2v = to_core(fens, fes)
+    vtkwrite("mt009-faces", t2v)
+    true
+end
+test()
+end
+
+module mt010
+using Random
+using FinEtools
+using FinEtools.MeshExportModule: VTK
+using FinEtools.MeshImportModule
+using ShellStructureTopo: to_core
+using MeshSteward: vtkwrite
+using Test
+function test()
+    output = MeshImportModule.import_ABAQUS(joinpath("../models", "quarter-shell.inp"))
+    fens, fes = output["fens"], output["fesets"][1]
+    t2v = to_core(fens, fes)
+    vtkwrite("mt010-faces", t2v)
+    true
+end
+test()
+end
+
