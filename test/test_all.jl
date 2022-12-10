@@ -429,7 +429,7 @@ function test()
     for k in eachindex(gpartitioning)
         gpartitioning[k] = p[gpartitioning[k]]
     end
-    @show npanelgroups = length(unique(gpartitioning))
+    @test (npanelgroups = length(unique(gpartitioning))) == 20
     VTK.vtkexportmesh("mt015.vtk", connasarray(bfes), fens.xyz, VTK.T3; scalars=[("topological_face", bfes.label), ("partitioning", gpartitioning)]);
     true
 end
