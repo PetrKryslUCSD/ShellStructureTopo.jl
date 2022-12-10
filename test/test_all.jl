@@ -321,3 +321,138 @@ end
 test()
 end
 
+
+module mt012
+using Random
+using FinEtools
+using FinEtools.MeshExportModule: VTK
+using FinEtools.MeshImportModule
+using ShellStructureTopo: make_topo_faces
+using MeshSteward: vtkwrite
+using Test
+function test()
+    output = MeshImportModule.import_ABAQUS(joinpath("../models", "stepped-cylinder.inp"))
+    fens, fes = output["fens"], output["fesets"][1]
+    bfes = meshboundary(fes)
+    fens, bfes = make_topo_faces(fens, bfes)
+    VTK.vtkexportmesh("mt012.vtk", connasarray(bfes), fens.xyz, VTK.T3);
+    true
+end
+test()
+end
+
+
+module mt013
+using Random
+using FinEtools
+using FinEtools.MeshExportModule: VTK
+using FinEtools.MeshImportModule
+using ShellStructureTopo: make_topo_faces
+using MeshSteward: vtkwrite
+using Test
+function test()
+    output = MeshImportModule.import_ABAQUS(joinpath("../models", "stepped-cylinder.inp"))
+    fens, fes = output["fens"], output["fesets"][1]
+    bfes = meshboundary(fes)
+    fens, bfes = make_topo_faces(fens, bfes)
+    VTK.vtkexportmesh("mt013.vtk", connasarray(bfes), fens.xyz, VTK.T3; scalars=[("topological_face", bfes.label)]);
+    true
+end
+test()
+end
+
+
+module mt014
+using Random
+using FinEtools
+using FinEtools.MeshExportModule: VTK
+using FinEtools.MeshImportModule
+using ShellStructureTopo: make_topo_faces
+using MeshSteward: vtkwrite
+using Metis
+using Test
+function test()
+    output = MeshImportModule.import_ABAQUS(joinpath("../models", "stepped-cylinder.inp"))
+    fens, fes = output["fens"], output["fesets"][1]
+    bfes = meshboundary(fes)
+    fens, bfes = make_topo_faces(fens, bfes)
+    npanelgroups = 4
+    femm1 = FEMMBase(IntegDomain(bfes, SimplexRule(2, 1)))
+    C = dualconnectionmatrix(femm1, fens, 2)
+    g = Metis.graph(C; check_hermitian=true)
+    partitioning = Metis.partition(g, npanelgroups; alg=:KWAY)
+    VTK.vtkexportmesh("mt014.vtk", connasarray(bfes), fens.xyz, VTK.T3; scalars=[("topological_face", bfes.label), ("partitioning", partitioning)]);
+    true
+end
+test()
+end
+
+
+module mt015
+using Random
+using FinEtools
+using FinEtools.MeshExportModule: VTK, MESH
+using FinEtools.MeshImportModule
+using ShellStructureTopo: make_topo_faces
+using MeshSteward: vtkwrite
+using Metis
+using Test
+function test()
+    output = MeshImportModule.import_ABAQUS(joinpath("../models", "stepped-cylinder.inp"))
+    fens, fes = output["fens"], output["fesets"][1]
+    bfes = meshboundary(fes)
+    # MESH.write_MESH("stepped-cylinder-large.mesh", fens, bfes)
+    fens, bfes = make_topo_faces(fens, bfes)
+    surfaces = unique(bfes.label)
+    nsurfaces = length(surfaces)
+    elem_per_partition = 100
+    # This is the global partitioning of the surface elements
+    gpartitioning = fill(0, count(bfes))
+    cpartoffset = 0
+    for surface in surfaces
+        el = selectelem(fens, bfes, label = surface)
+        sfes = subset(bfes, el)
+        np = max(2, Int(round(length(el) / elem_per_partition)))
+        femm1 = FEMMBase(IntegDomain(sfes, SimplexRule(2, 1)))
+        C = dualconnectionmatrix(femm1, fens, 2)
+        g = Metis.graph(C; check_hermitian=true)
+        # @info "Surface $(surface), $(np) partitions"
+        spartitioning = Metis.partition(g, np; alg=:KWAY)
+        for k in eachindex(el)
+            gpartitioning[el[k]] = spartitioning[k] + cpartoffset
+        end
+        cpartoffset += length(unique(spartitioning))
+    end 
+    # Randomize the partition numbers
+    pnumbers = unique(gpartitioning)
+    p = randperm(length(pnumbers))
+    for k in eachindex(gpartitioning)
+        gpartitioning[k] = p[gpartitioning[k]]
+    end
+    @show npanelgroups = length(unique(gpartitioning))
+    VTK.vtkexportmesh("mt015.vtk", connasarray(bfes), fens.xyz, VTK.T3; scalars=[("topological_face", bfes.label), ("partitioning", gpartitioning)]);
+    true
+end
+test()
+end
+
+
+module mt016_part
+using Random
+using FinEtools
+using FinEtools.MeshExportModule: VTK, MESH
+using FinEtools.MeshImportModule
+using ShellStructureTopo: make_topo_faces, create_partitions
+using MeshSteward: vtkwrite
+using Metis
+using Test
+function test()
+    output = MeshImportModule.import_ABAQUS(joinpath("../models", "cylinders-93k.inp"))
+    fens, fes = output["fens"], output["fesets"][1]
+    surfids, partitionids = create_partitions(fens, fes, 50)
+    VTK.vtkexportmesh("mt016_part.vtk", connasarray(fes), fens.xyz, VTK.T3; scalars=[("topological_face", surfids), ("partitioning", partitionids)]);
+    true
+end
+test()
+end
+
