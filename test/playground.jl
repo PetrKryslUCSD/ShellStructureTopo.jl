@@ -1,5 +1,5 @@
 
-module mt019_part
+module mt020_part
 using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK, MESH
@@ -9,11 +9,12 @@ using MeshSteward: vtkwrite
 using Metis
 using Test
 function test()
-    output = MeshImportModule.import_ABAQUS(joinpath("../models", "cylinders-93k.inp"))
+    output = MeshImportModule.import_NASTRAN(joinpath("./models", "Heat_105_Max_12kHz.nas"))
     fens, fes = output["fens"], output["fesets"][1]
-    surfids, partitionids, surface_elem_per_partition  = create_partitions(fens, fes, 2000; max_normal_deviation = pi/6)
+    bfes = meshboundary(fes)
+    surfids, partitionids, surface_elem_per_partition  = create_partitions(fens, bfes, 50; max_normal_deviation = pi/4)
     @show surface_elem_per_partition
-    VTK.vtkexportmesh("mt019_part.vtk", connasarray(fes), fens.xyz, VTK.T3; scalars=[("topological_face", surfids), ("partitioning", partitionids)]);
+    VTK.vtkexportmesh("mt020_part.vtk", connasarray(bfes), fens.xyz, VTK.T3; scalars=[("topological_face", surfids), ("partitioning", partitionids)]);
     true
 end
 test()

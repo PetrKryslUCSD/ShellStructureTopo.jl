@@ -71,7 +71,7 @@ function create_partitions(fens, fes, elem_per_partition = 50; max_normal_deviat
     permuted_surface_elem_per_partition = nothing
     # Randomize the partition ids
     pnumbers = unique(partitionids)
-    prmtd = randperm(maximum(pnumbers))
+    prmtd = randperm(length(pnumbers))
     for k in eachindex(partitionids)
         partitionids[k] = prmtd[partitionids[k]]
     end
@@ -122,7 +122,20 @@ function _partition_surface(fens, fes, surf, el, elem_per_partition, max_normal_
     while true
         np = max(2, Int(round(length(el) / elem_per_partition)))
         spartitioning = Metis.partition(g, np; alg=:KWAY)
+        upids = sort(unique(spartitioning))
+        @assert upids[1] > 0
+        
         if _clusters_sufficiently_flat(fens, fes, el, surf, normals, spartitioning, max_normal_deviation)
+            # Make the partitioning numbers contiguous
+            p = 1
+            for k in upids
+                for j in eachindex(spartitioning)
+                    if spartitioning[j] == k
+                        spartitioning[j] = p
+                    end
+                end
+                p += 1
+            end
             return spartitioning, elem_per_partition
         else
             elem_per_partition = Int(round(elem_per_partition / 2))
