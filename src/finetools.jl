@@ -71,7 +71,7 @@ function create_partitions(fens, fes, elem_per_partition = 50; max_normal_deviat
     permuted_surface_elem_per_partition = nothing
     # Randomize the partition ids
     pnumbers = unique(partitionids)
-    prmtd = randperm(length(pnumbers))
+    prmtd = randperm(maximum(pnumbers))
     for k in eachindex(partitionids)
         partitionids[k] = prmtd[partitionids[k]]
     end
