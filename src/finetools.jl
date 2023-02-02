@@ -114,13 +114,27 @@ function _clusters_sufficiently_flat(fens, fes, el, surf, normals, spartitioning
     return true
 end
 
+function _estimate_number_of_partitions(nel, elem_per_partition)
+    while true
+        elem_per_partition -= 1
+        elem_per_partition = max(elem_per_partition, 1)
+        np = nel / elem_per_partition
+        npi = Int(round(np))
+        if abs(np - npi) / npi < 0.05
+            return npi, elem_per_partition
+        end
+    end
+    return 0, 0
+end
+
 function _partition_surface(fens, fes, surf, el, elem_per_partition, max_normal_deviation, normals)
     sfes = subset(fes, el)
+    nel = count(sfes)
     femm1 = FEMMBase(IntegDomain(sfes, SimplexRule(2, 1)))
     C = dualconnectionmatrix(femm1, fens, 2)
     g = Metis.graph(C; check_hermitian=true)
+    @show np, elem_per_partition = _estimate_number_of_partitions(nel, elem_per_partition)
     while true
-        np = max(2, Int(round(length(el) / elem_per_partition)))
         spartitioning = Metis.partition(g, np; alg=:KWAY)
         upids = sort(unique(spartitioning))
         @assert upids[1] > 0
@@ -137,10 +151,10 @@ function _partition_surface(fens, fes, surf, el, elem_per_partition, max_normal_
             end
             return spartitioning, elem_per_partition
         else
-            elem_per_partition = Int(round(elem_per_partition / 2))
             if elem_per_partition  <= 1
                 return collect(1:length(el)), 1
             end
         end
+        np += 1
     end
 end
