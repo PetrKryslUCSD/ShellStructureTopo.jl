@@ -29,45 +29,54 @@ function _to_core(fens::FENodeSet, fes::E) where {E<:AbstractFESet}
     IncRel(t, v, connasarray(fes))
 end
 
-function create_partitions(fens, fes, elem_per_partition = 50; min_num_partitions = 4, max_normal_deviation = pi/2)
+"""
+    create_partitions(fens, fes, elem_per_partition = 50; max_normal_deviation = 2/3*pi)
+
+Create partitions of the triangulated boundary into clusters.
+
+Output
+
+- `surfids` = array of surface identifiers, one for each boundary facet
+- `partitionids` = array of partition identifiers (i.e. cluster identifiers),  one for each boundary facet
+- `surface_elem_per_partition` = dictionary of cluster sizes, indexed by the surface id
+"""
+function create_partitions(fens, fes, elem_per_partition = 50; max_normal_deviation = 2/3*pi)
     fens, fes = make_topo_faces(fens, fes)
     surfids = deepcopy(fes.label)
     uniquesurfids = unique(surfids)
-    nuniquesurfids = length(uniquesurfids)
     normals = _compute_normals(fens, fes)
     # This is the global partitioning of the surface elements
     partitionids = fill(0, count(fes))
+    surface_elem_per_partition = Dict()
     cpartoffset = 0
-    for s in uniquesurfids
-        el = selectelem(fens, fes, label = s)
-        sfes = subset(fes, el)
-        np = max(2, Int(round(length(el) / elem_per_partition)))
-        femm1 = FEMMBase(IntegDomain(sfes, SimplexRule(2, 1)))
-        C = dualconnectionmatrix(femm1, fens, 2)
-        g = Metis.graph(C; check_hermitian=true)
-        spartitioning = Metis.partition(g, np; alg=:KWAY)
-        # Now we have the surface partitioning based purely on topology. The
-        # next thing is to consider the geometry so that the partitions are
-        # reasonably flat.
-        spartitioning = _adjust_for_curvature(fens, fes, el, s, normals, spartitioning, elem_per_partition, min_num_partitions, max_normal_deviation)
+    for surf in uniquesurfids
+        el = selectelem(fens, fes, label = surf)
+        spartitioning, adj_elem_per_partition = _partition_surface(fens, fes, surf, el, elem_per_partition, max_normal_deviation, normals)
         for k in eachindex(el)
             partitionids[el[k]] = spartitioning[k] + cpartoffset
         end
         cpartoffset += length(unique(spartitioning))
+        surface_elem_per_partition[surf] = adj_elem_per_partition
     end 
-    # Randomize the surface and partition ids
-    pnumbers = unique(surfids)
-    p = randperm(length(pnumbers))
+    # Randomize the surface ids
+    prmtd = randperm(length(uniquesurfids))
     for k in eachindex(surfids)
-        surfids[k] = p[surfids[k]]
+        surfids[k] = prmtd[surfids[k]]
     end
+    permuted_surface_elem_per_partition = Dict()
+    for k in uniquesurfids
+        permuted_surface_elem_per_partition[prmtd[k]] = surface_elem_per_partition[k]
+    end
+    surface_elem_per_partition = permuted_surface_elem_per_partition
+    permuted_surface_elem_per_partition = nothing
+    # Randomize the partition ids
     pnumbers = unique(partitionids)
-    p = randperm(length(pnumbers))
+    prmtd = randperm(length(pnumbers))
     for k in eachindex(partitionids)
-        partitionids[k] = p[partitionids[k]]
+        partitionids[k] = prmtd[partitionids[k]]
     end
     # npanelgroups = length(unique(partitionids))
-    return surfids, partitionids
+    return surfids, partitionids, surface_elem_per_partition
 end
 
 
@@ -88,25 +97,38 @@ function _compute_normals(fens, fes)
     return normals
 end
 
-
-function _adjust_for_curvature(fens, fes, el, surf, normals, spartitioning, elem_per_partition, min_num_partitions, max_normal_deviation)
+function _clusters_sufficiently_flat(fens, fes, el, surf, normals, spartitioning, max_normal_deviation)
     upids = unique(spartitioning)
     cmnd = cos(max_normal_deviation)
     # Now go through the partitions
     for p in upids
         pel = [el[k] for k in eachindex(spartitioning) if spartitioning[k] == p]
-        pass = true
         for i in 1:length(pel)
             for j in i+1:length(pel)
                 if dot(view(normals, pel[i], :), view(normals, pel[j], :)) < cmnd
-                    pass = false; break
+                    return false
                 end
             end
         end
-        if !pass
-            VTK.vtkexportmesh("mt017_s=$(surf)-p=$(p)-fails.vtk", connasarray(subset(fes, pel)), fens.xyz, VTK.T3)
-        end
     end
-    return spartitioning
+    return true
 end
 
+function _partition_surface(fens, fes, surf, el, elem_per_partition, max_normal_deviation, normals)
+    sfes = subset(fes, el)
+    femm1 = FEMMBase(IntegDomain(sfes, SimplexRule(2, 1)))
+    C = dualconnectionmatrix(femm1, fens, 2)
+    g = Metis.graph(C; check_hermitian=true)
+    while true
+        np = max(2, Int(round(length(el) / elem_per_partition)))
+        spartitioning = Metis.partition(g, np; alg=:KWAY)
+        if _clusters_sufficiently_flat(fens, fes, el, surf, normals, spartitioning, max_normal_deviation)
+            return spartitioning, elem_per_partition
+        else
+            elem_per_partition = Int(round(elem_per_partition / 2))
+            if elem_per_partition  <= 1
+                return collect(1:length(el)), 1
+            end
+        end
+    end
+end
