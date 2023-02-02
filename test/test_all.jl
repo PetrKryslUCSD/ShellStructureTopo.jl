@@ -466,7 +466,7 @@ using MeshSteward: vtkwrite
 using Metis
 using Test
 function test()
-    output = MeshImportModule.import_ABAQUS(joinpath("./models", "cylinders-93k.inp"))
+    output = MeshImportModule.import_ABAQUS(joinpath("../models", "cylinders-93k.inp"))
     fens, fes = output["fens"], output["fesets"][1]
     surfids, partitionids = create_partitions(fens, fes, 1050; max_normal_deviation = pi/2)
     VTK.vtkexportmesh("mt017_part.vtk", connasarray(fes), fens.xyz, VTK.T3; scalars=[("topological_face", surfids), ("partitioning", partitionids)]);
