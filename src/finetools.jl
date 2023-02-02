@@ -124,17 +124,16 @@ function _partition_surface(fens, fes, surf, el, elem_per_partition, max_normal_
         spartitioning = Metis.partition(g, np; alg=:KWAY)
         upids = sort(unique(spartitioning))
         @assert upids[1] > 0
-        
         if _clusters_sufficiently_flat(fens, fes, el, surf, normals, spartitioning, max_normal_deviation)
             # Make the partitioning numbers contiguous
+            newpids = fill(0, maximum(upids))
             p = 1
-            for k in upids
-                for j in eachindex(spartitioning)
-                    if spartitioning[j] == k
-                        spartitioning[j] = p
-                    end
-                end
+            for k in eachindex(upids)
+                newpids[upids[k]] = p
                 p += 1
+            end
+            for j in eachindex(spartitioning)
+                spartitioning[j] = newpids[spartitioning[j]]
             end
             return spartitioning, elem_per_partition
         else
