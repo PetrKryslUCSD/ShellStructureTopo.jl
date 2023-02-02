@@ -290,13 +290,13 @@ using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK
 using FinEtools.MeshImportModule
-using ShellStructureTopo: to_core
+using ShellStructureTopo: _to_core
 using MeshSteward: vtkwrite
 using Test
 function test()
     output = MeshImportModule.import_ABAQUS(joinpath("../models", "extrusion.inp"))
     fens, fes = output["fens"], output["fesets"][1]
-    t2v = to_core(fens, fes)
+    t2v = _to_core(fens, fes)
     vtkwrite("mt009-faces", t2v)
     true
 end
@@ -308,13 +308,13 @@ using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK
 using FinEtools.MeshImportModule
-using ShellStructureTopo: to_core
+using ShellStructureTopo: _to_core
 using MeshSteward: vtkwrite
 using Test
 function test()
     output = MeshImportModule.import_ABAQUS(joinpath("../models", "quarter-shell.inp"))
     fens, fes = output["fens"], output["fesets"][1]
-    t2v = to_core(fens, fes)
+    t2v = _to_core(fens, fes)
     vtkwrite("mt010-faces", t2v)
     true
 end
@@ -455,4 +455,24 @@ function test()
 end
 test()
 end
+
+module mt017_part
+using Random
+using FinEtools
+using FinEtools.MeshExportModule: VTK, MESH
+using FinEtools.MeshImportModule
+using ShellStructureTopo: make_topo_faces, create_partitions
+using MeshSteward: vtkwrite
+using Metis
+using Test
+function test()
+    output = MeshImportModule.import_ABAQUS(joinpath("./models", "cylinders-93k.inp"))
+    fens, fes = output["fens"], output["fesets"][1]
+    surfids, partitionids = create_partitions(fens, fes, 1050; max_normal_deviation = pi/2)
+    VTK.vtkexportmesh("mt017_part.vtk", connasarray(fes), fens.xyz, VTK.T3; scalars=[("topological_face", surfids), ("partitioning", partitionids)]);
+    true
+end
+test()
+end
+
 
