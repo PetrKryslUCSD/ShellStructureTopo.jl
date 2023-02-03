@@ -136,7 +136,7 @@ function _partition_surface(fens, fes, surf, el, elem_per_partition, max_normal_
     np = Int(ceil(nel / elem_per_partition))
     np = _estimate_number_of_partitions(nel, np)
     while true
-        elem_per_partition = Int(floor(nel / np))
+        elem_per_partition = Int(round(nel / np))
         spartitioning = Metis.partition(g, np; alg=:KWAY)
         upids = sort(unique(spartitioning))
         @assert upids[1] > 0
