@@ -1,3 +1,30 @@
+using DataDrop
+
+function maybeunzip(impfun, file)
+    if !isfile(file)
+        zf = DataDrop.with_extension(file, ".zip")
+        if !isfile(zf)
+            error("File $(file) not found, and neither was its archive")
+        end
+        exdir=""
+        fileFullPath = isabspath(zf) ?  zf : joinpath(pwd(),zf)
+        basePath = dirname(fileFullPath)
+        outPath = (exdir == "" ? basePath : (isabspath(exdir) ? exdir : joinpath(pwd(),exdir)))
+        isdir(outPath) ? "" : mkdir(outPath)
+        zarchive = ZipFile.Reader(fileFullPath)
+        for f in zarchive.files
+            fullFilePath = joinpath(outPath,f.name)
+            if (endswith(f.name,"/") || endswith(f.name,"\\"))
+                mkdir(fullFilePath)
+            else
+                write(fullFilePath, read(f))
+            end
+        end
+        close(zarchive)
+    end
+    return impfun(file)
+end
+
 module mt001
 using StaticArrays
 using MeshCore: VecAttrib
@@ -131,10 +158,11 @@ using MeshCore: ir_skeleton, ir_transpose, ir_bbyfacets
 using MeshSteward: T3block
 using MeshSteward: vtkwrite
 using MeshSteward: import_ABAQUS, vtkwrite, export_MESH, import_MESH
+using Main: maybeunzip
 using ShellStructureTopo: orient_surface_mesh
 using Test
 function test()
-    connectivities = import_ABAQUS(joinpath("../models", "extrusion.inp"))
+    connectivities = maybeunzip(import_ABAQUS, joinpath("../models", "extrusion.inp"))
     @test length(connectivities) == 1
     t2v = connectivities[1]
     e2v = ir_skeleton(t2v)
@@ -163,13 +191,14 @@ using MeshCore: ir_skeleton, ir_transpose, ir_bbyfacets
 using MeshSteward: T3block
 using MeshSteward: vtkwrite
 using MeshSteward: import_ABAQUS, vtkwrite, export_MESH, import_MESH
+using Main: maybeunzip
 using ShellStructureTopo: orient_surface_mesh
 using Test
 function normal(c, geom)
     StaticArrays.cross(geom[c[2]] - geom[c[1]], geom[c[3]] - geom[c[1]])
 end
 function test()
-    connectivities = import_ABAQUS(joinpath("../models", "extrusion.inp"))
+    connectivities = maybeunzip(import_ABAQUS, joinpath("../models", "extrusion.inp"))
     @test length(connectivities) == 1
     t2v = connectivities[1]
     for k in 1:nshapes(t2v.left)
@@ -205,13 +234,14 @@ using MeshCore: ir_skeleton, ir_transpose, ir_bbyfacets
 using MeshSteward: T3block
 using MeshSteward: vtkwrite
 using MeshSteward: import_ABAQUS, vtkwrite, export_MESH, import_MESH
+using Main: maybeunzip
 using ShellStructureTopo: orient_surface_mesh, _classify_mesh_edges
 using Test
 function normal(c, geom)
     StaticArrays.cross(geom[c[2]] - geom[c[1]], geom[c[3]] - geom[c[1]])
 end
 function test()
-    connectivities = import_ABAQUS(joinpath("../models", "extrusion.inp"))
+    connectivities = maybeunzip(import_ABAQUS, joinpath("../models", "extrusion.inp"))
     @test length(connectivities) == 1
     t2v = connectivities[1]
     for k in 1:nshapes(t2v.left)
@@ -256,10 +286,11 @@ using MeshCore: ir_skeleton, ir_transpose, ir_bbyfacets
 using MeshSteward: T3block
 using MeshSteward: vtkwrite
 using MeshSteward: import_ABAQUS, vtkwrite, export_MESH, import_MESH
+using Main: maybeunzip
 using ShellStructureTopo: orient_surface_mesh, _normal, make_topo_faces
 using Test
 function test()
-    connectivities = import_ABAQUS(joinpath("../models", "extrusion.inp"))
+    connectivities = maybeunzip(import_ABAQUS, joinpath("../models", "extrusion.inp"))
     @test length(connectivities) == 1
     t2v = connectivities[1]
     for k in 1:nshapes(t2v.left)
@@ -290,11 +321,12 @@ using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK
 using FinEtools.MeshImportModule
+using Main: maybeunzip
 using ShellStructureTopo: _to_core
 using MeshSteward: vtkwrite
 using Test
 function test()
-    output = MeshImportModule.import_ABAQUS(joinpath("../models", "extrusion.inp"))
+    output = maybeunzip(MeshImportModule.import_ABAQUS, joinpath("../models", "extrusion.inp"))
     fens, fes = output["fens"], output["fesets"][1]
     t2v = _to_core(fens, fes)
     vtkwrite("mt009-faces", t2v)
@@ -308,11 +340,12 @@ using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK
 using FinEtools.MeshImportModule
+using Main: maybeunzip
 using ShellStructureTopo: _to_core
 using MeshSteward: vtkwrite
 using Test
 function test()
-    output = MeshImportModule.import_ABAQUS(joinpath("../models", "quarter-shell.inp"))
+    output = maybeunzip(MeshImportModule.import_ABAQUS, joinpath("../models", "quarter-shell.inp"))
     fens, fes = output["fens"], output["fesets"][1]
     t2v = _to_core(fens, fes)
     vtkwrite("mt010-faces", t2v)
@@ -327,11 +360,12 @@ using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK
 using FinEtools.MeshImportModule
+using Main: maybeunzip
 using ShellStructureTopo: make_topo_faces
 using MeshSteward: vtkwrite
 using Test
 function test()
-    output = MeshImportModule.import_ABAQUS(joinpath("../models", "stepped-cylinder.inp"))
+    output = maybeunzip(MeshImportModule.import_ABAQUS, joinpath("../models", "stepped-cylinder.inp"))
     fens, fes = output["fens"], output["fesets"][1]
     bfes = meshboundary(fes)
     fens, bfes = make_topo_faces(fens, bfes)
@@ -347,11 +381,12 @@ using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK
 using FinEtools.MeshImportModule
+using Main: maybeunzip
 using ShellStructureTopo: make_topo_faces
 using MeshSteward: vtkwrite
 using Test
 function test()
-    output = MeshImportModule.import_ABAQUS(joinpath("../models", "stepped-cylinder.inp"))
+    output = maybeunzip(MeshImportModule.import_ABAQUS, joinpath("../models", "stepped-cylinder.inp"))
     fens, fes = output["fens"], output["fesets"][1]
     bfes = meshboundary(fes)
     fens, bfes = make_topo_faces(fens, bfes)
@@ -367,12 +402,13 @@ using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK
 using FinEtools.MeshImportModule
+using Main: maybeunzip
 using ShellStructureTopo: make_topo_faces
 using MeshSteward: vtkwrite
 using Metis
 using Test
 function test()
-    output = MeshImportModule.import_ABAQUS(joinpath("../models", "stepped-cylinder.inp"))
+    output = maybeunzip(MeshImportModule.import_ABAQUS, joinpath("../models", "stepped-cylinder.inp"))
     fens, fes = output["fens"], output["fesets"][1]
     bfes = meshboundary(fes)
     fens, bfes = make_topo_faces(fens, bfes)
@@ -393,12 +429,13 @@ using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK, MESH
 using FinEtools.MeshImportModule
+using Main: maybeunzip
 using ShellStructureTopo: make_topo_faces
 using MeshSteward: vtkwrite
 using Metis
 using Test
 function test()
-    output = MeshImportModule.import_ABAQUS(joinpath("../models", "stepped-cylinder.inp"))
+    output = maybeunzip(MeshImportModule.import_ABAQUS, joinpath("../models", "stepped-cylinder.inp"))
     fens, fes = output["fens"], output["fesets"][1]
     bfes = meshboundary(fes)
     # MESH.write_MESH("stepped-cylinder-large.mesh", fens, bfes)
@@ -442,12 +479,13 @@ using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK, MESH
 using FinEtools.MeshImportModule
+using Main: maybeunzip
 using ShellStructureTopo: make_topo_faces, create_partitions
 using MeshSteward: vtkwrite
 using Metis
 using Test
 function test()
-    output = MeshImportModule.import_ABAQUS(joinpath("../models", "cylinders-93k.inp"))
+    output = maybeunzip(MeshImportModule.import_ABAQUS, joinpath("../models", "cylinders-93k.inp"))
     fens, fes = output["fens"], output["fesets"][1]
     surfids, partitionids = create_partitions(fens, fes, 50)
     VTK.vtkexportmesh("mt016_part.vtk", connasarray(fes), fens.xyz, VTK.T3; scalars=[("topological_face", surfids), ("partitioning", partitionids)]);
@@ -461,12 +499,13 @@ using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK, MESH
 using FinEtools.MeshImportModule
+using Main: maybeunzip
 using ShellStructureTopo: make_topo_faces, create_partitions
 using MeshSteward: vtkwrite
 using Metis
 using Test
 function test()
-    output = MeshImportModule.import_ABAQUS(joinpath("../models", "cylinders-93k.inp"))
+    output = maybeunzip(MeshImportModule.import_ABAQUS, joinpath("../models", "cylinders-93k.inp"))
     fens, fes = output["fens"], output["fesets"][1]
     surfids, partitionids = create_partitions(fens, fes, 1050; max_normal_deviation = pi/2)
     VTK.vtkexportmesh("mt017_part.vtk", connasarray(fes), fens.xyz, VTK.T3; scalars=[("topological_face", surfids), ("partitioning", partitionids)]);
@@ -481,12 +520,13 @@ using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK, MESH
 using FinEtools.MeshImportModule
+using Main: maybeunzip
 using ShellStructureTopo: make_topo_faces, create_partitions
 using MeshSteward: vtkwrite
 using Metis
 using Test
 function test()
-    output = MeshImportModule.import_ABAQUS(joinpath("../models", "cylinders-93k.inp"))
+    output = maybeunzip(MeshImportModule.import_ABAQUS, joinpath("../models", "cylinders-93k.inp"))
     fens, fes = output["fens"], output["fesets"][1]
     surfids, partitionids = create_partitions(fens, fes, 2000; max_normal_deviation = pi/6)
     VTK.vtkexportmesh("mt018_part.vtk", connasarray(fes), fens.xyz, VTK.T3; scalars=[("topological_face", surfids), ("partitioning", partitionids)]);
@@ -502,12 +542,13 @@ using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK, MESH
 using FinEtools.MeshImportModule
+using Main: maybeunzip
 using ShellStructureTopo: make_topo_faces, create_partitions
 using MeshSteward: vtkwrite
 using Metis
 using Test
 function test()
-    output = MeshImportModule.import_ABAQUS(joinpath("../models", "cylinders-93k.inp"))
+    output = maybeunzip(MeshImportModule.import_ABAQUS, joinpath("../models", "cylinders-93k.inp"))
     fens, fes = output["fens"], output["fesets"][1]
     surfids, partitionids, surface_elem_per_partition  = create_partitions(fens, fes, 2000; max_normal_deviation = pi/6)
     @show surface_elem_per_partition
@@ -523,12 +564,13 @@ using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK, MESH
 using FinEtools.MeshImportModule
+using Main: maybeunzip
 using ShellStructureTopo: make_topo_faces, create_partitions
 using MeshSteward: vtkwrite
 using Metis
 using Test
 function test()
-    output = MeshImportModule.import_NASTRAN(joinpath("../models", "Heat_105_Max_12kHz.nas"))
+    output = maybeunzip(MeshImportModule.import_NASTRAN, joinpath("../models", "Heat_105_Max_12kHz.nas"))
     fens, fes = output["fens"], output["fesets"][1]
     bfes = meshboundary(fes)
     surfids, partitionids, surface_elem_per_partition  = create_partitions(fens, bfes, 50; max_normal_deviation = pi/4)
@@ -545,12 +587,13 @@ using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK, MESH
 using FinEtools.MeshImportModule
+using Main: maybeunzip
 using ShellStructureTopo: make_topo_faces, create_partitions
 using MeshSteward: vtkwrite
 using Metis
 using Test
 function test()
-    output = MeshImportModule.import_ABAQUS(joinpath("../models", "cylinders-93k.inp"))
+    output = maybeunzip(MeshImportModule.import_ABAQUS, joinpath("../models", "cylinders-93k.inp"))
     fens, fes = output["fens"], output["fesets"][1]
     surfids, partitionids, surface_elem_per_partition  = create_partitions(fens, fes, 2000; max_normal_deviation = pi/4)
     @show surface_elem_per_partition
@@ -559,3 +602,26 @@ function test()
 end
 test()
 end
+
+module mt022_part
+using Random
+using FinEtools
+using FinEtools.MeshExportModule: VTK, MESH
+using FinEtools.MeshImportModule
+using Main: maybeunzip
+using ShellStructureTopo: make_topo_faces, create_partitions
+using MeshSteward: vtkwrite
+using Metis
+using Test
+function test()
+    output = maybeunzip(MeshImportModule.import_ABAQUS, joinpath("../models", "heat_105_5mm.inp"))
+    fens, fes = output["fens"], output["fesets"][1]
+    bfes = meshboundary(fes)
+    surfids, partitionids, surface_elem_per_partition  = create_partitions(fens, bfes, 250; max_normal_deviation = pi/4)
+    @show surface_elem_per_partition
+    VTK.vtkexportmesh("mt022_part.vtk", connasarray(bfes), fens.xyz, VTK.T3; scalars=[("topological_face", surfids), ("partitioning", partitionids)]);
+    true
+end
+@time test()
+end
+
