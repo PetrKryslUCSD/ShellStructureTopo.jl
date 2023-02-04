@@ -124,7 +124,7 @@ function _estimate_number_of_partitions(nel, np)
             break
         end
     end
-    return np
+    return min(nel, np)
 end
 
 function _partition_surface(fens, fes, surf, el, elem_per_partition, max_normal_deviation, normals)
@@ -133,7 +133,7 @@ function _partition_surface(fens, fes, surf, el, elem_per_partition, max_normal_
     femm1 = FEMMBase(IntegDomain(sfes, SimplexRule(2, 1)))
     C = dualconnectionmatrix(femm1, fens, 2)
     g = Metis.graph(C; check_hermitian=true)
-    np = Int(ceil(nel / elem_per_partition))
+    np = min(nel, Int(ceil(nel / elem_per_partition)))
     np = _estimate_number_of_partitions(nel, np)
     while true
         elem_per_partition = Int(round(nel / np))
