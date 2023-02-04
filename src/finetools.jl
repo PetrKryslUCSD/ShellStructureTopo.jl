@@ -117,10 +117,11 @@ end
 function _estimate_number_of_partitions(nel, np)
     fraction = 0.6
     nc = Int(floor(nel / np))
-    while nel - nc * np < fraction * nc
+    nc0 = nc
+    while (nel - nc * np < fraction * nc) || !(nc < nc0)
         np += 1
         nc = Int(floor(nel / np))
-        if np == nel
+        if np == nel 
             break
         end
     end
@@ -137,7 +138,11 @@ function _partition_surface(fens, fes, surf, el, elem_per_partition, max_normal_
     np = _estimate_number_of_partitions(nel, np)
     while true
         elem_per_partition = Int(round(nel / np))
-        spartitioning = Metis.partition(g, np; alg=:KWAY)
+        if np > 1
+            spartitioning = Metis.partition(g, np; alg=:KWAY)
+        else
+            spartitioning = ones(Int32, nel)
+        end
         upids = sort(unique(spartitioning))
         @assert upids[1] > 0
         if _clusters_sufficiently_flat(fens, fes, el, surf, normals, spartitioning, max_normal_deviation)
