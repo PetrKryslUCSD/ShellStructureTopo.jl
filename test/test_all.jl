@@ -608,16 +608,15 @@ using Random
 using FinEtools
 using FinEtools.MeshExportModule: VTK, MESH
 using FinEtools.MeshImportModule
-using Main: maybeunzip
 using ShellStructureTopo: make_topo_faces, create_partitions
 using MeshSteward: vtkwrite
 using Metis
 using Test
 function test()
-    output = maybeunzip(MeshImportModule.import_ABAQUS, joinpath("../models", "heat_105_5mm.inp"))
+    output = MeshImportModule.import_ABAQUS(joinpath("./models", "heat_105_5mm.inp"))
     fens, fes = output["fens"], output["fesets"][1]
     bfes = meshboundary(fes)
-    surfids, partitionids, surface_elem_per_partition  = create_partitions(fens, bfes, 250; cluster_max_normal_deviation = pi/4)
+    surfids, partitionids, surface_elem_per_partition  = create_partitions(fens, bfes, 250; crease_ang = pi/8, cluster_max_normal_deviation = pi/3)
     @show surface_elem_per_partition
     VTK.vtkexportmesh("mt022_part.vtk", connasarray(bfes), fens.xyz, VTK.T3; scalars=[("topological_face", surfids), ("partitioning", partitionids)]);
     true
