@@ -155,7 +155,7 @@ function _classify_mesh_edges(t2v, e2t, crease_ang)
 end
 
 """
-    make_topo_faces(t2v, e2t)
+    make_topo_faces(t2v, crease_ang = 30/180*pi)
 
 Make topological faces.
 
