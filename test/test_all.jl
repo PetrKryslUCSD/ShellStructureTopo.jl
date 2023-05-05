@@ -618,7 +618,7 @@ function test()
     fens, fes = output["fens"], output["fesets"][1]
     bfes = meshboundary(fes)
     surfids, partitionids, surface_elem_per_partition  = create_partitions(fens, bfes, 250; crease_ang = pi/8, cluster_max_normal_deviation = pi/3)
-    @show surface_elem_per_partition
+    # @show surface_elem_per_partition
     VTK.vtkexportmesh("mt022_part.vtk", connasarray(bfes), fens.xyz, VTK.T3; scalars=[("topological_face", surfids), ("partitioning", partitionids)]);
     true
 end
