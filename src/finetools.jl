@@ -15,7 +15,7 @@ Returns
 function make_topo_faces(fens::FENodeSet, fes::E, crease_ang = 30/180*pi) where {E<:AbstractFESet} 
     t2v = _to_core(fens, fes)
     orientedt2v, orientable = orient_surface_mesh(t2v)
-    orientedt2v = make_topo_faces(orientedt2v)
+    orientedt2v = make_topo_faces(orientedt2v, crease_ang)
     setlabel!(fes, [f for f in attribute(orientedt2v.left, "tfid")])
     return fens, fes
 end
@@ -30,18 +30,25 @@ function _to_core(fens::FENodeSet, fes::E) where {E<:AbstractFESet}
 end
 
 """
-    create_partitions(fens, fes, elem_per_partition = 50; max_normal_deviation = 2/3*pi)
+    create_partitions(fens, fes, elem_per_partition = 50; crease_ang = 30/180*pi, cluster_max_normal_deviation = 2 * crease_ang)
 
 Create partitions of the triangulated boundary into clusters.
 
-Output
+# Input
+
+- `fens`, `fes` = finite element mesh,
+- `elem_per_partition` = desired number of elements per partition,
+- `crease_ang` = crease angle to determine boundaries between topological faces,
+- `cluster_max_normal_deviation` = maximum deviation of the normal within the cluster.
+
+# Output
 
 - `surfids` = array of surface identifiers, one for each boundary facet
 - `partitionids` = array of partition identifiers (i.e. cluster identifiers),  one for each boundary facet
 - `surface_elem_per_partition` = dictionary of cluster sizes, indexed by the surface id
 """
-function create_partitions(fens, fes, elem_per_partition = 50; max_normal_deviation = 2/3*pi)
-    fens, fes = make_topo_faces(fens, fes)
+function create_partitions(fens, fes, elem_per_partition = 50; crease_ang = 30/180*pi, cluster_max_normal_deviation = 2 * crease_ang)
+    fens, fes = make_topo_faces(fens, fes, crease_ang)
     surfids = deepcopy(fes.label)
     uniquesurfids = unique(surfids)
     normals = _compute_normals(fens, fes)
@@ -51,12 +58,12 @@ function create_partitions(fens, fes, elem_per_partition = 50; max_normal_deviat
     cpartoffset = 0
     for surf in uniquesurfids
         el = selectelem(fens, fes, label = surf)
-        spartitioning, adj_elem_per_partition = _partition_surface(fens, fes, surf, el, elem_per_partition, max_normal_deviation, normals)
+        spartitioning, adjusted_elem_per_partition = _partition_surface(fens, fes, surf, el, elem_per_partition, cluster_max_normal_deviation, normals)
         for k in eachindex(el)
             partitionids[el[k]] = spartitioning[k] + cpartoffset
         end
         cpartoffset += length(unique(spartitioning))
-        surface_elem_per_partition[surf] = adj_elem_per_partition
+        surface_elem_per_partition[surf] = adjusted_elem_per_partition
     end 
     # Randomize the surface ids
     prmtd = randperm(length(uniquesurfids))
@@ -97,9 +104,9 @@ function _compute_normals(fens, fes)
     return normals
 end
 
-function _clusters_sufficiently_flat(fens, fes, el, surf, normals, spartitioning, max_normal_deviation)
+function _clusters_sufficiently_flat(fens, fes, el, surf, normals, spartitioning, cluster_max_normal_deviation)
     upids = unique(spartitioning)
-    cmnd = cos(max_normal_deviation)
+    cmnd = cos(cluster_max_normal_deviation)
     # Now go through the partitions
     for p in upids
         pel = [el[k] for k in eachindex(spartitioning) if spartitioning[k] == p]
@@ -128,7 +135,7 @@ function _estimate_number_of_partitions(nel, np)
     return min(nel, np)
 end
 
-function _partition_surface(fens, fes, surf, el, elem_per_partition, max_normal_deviation, normals)
+function _partition_surface(fens, fes, surf, el, elem_per_partition, cluster_max_normal_deviation, normals)
     sfes = subset(fes, el)
     nel = count(sfes)
     femm1 = FEMMBase(IntegDomain(sfes, SimplexRule(2, 1)))
@@ -145,7 +152,7 @@ function _partition_surface(fens, fes, surf, el, elem_per_partition, max_normal_
         end
         upids = sort(unique(spartitioning))
         @assert upids[1] > 0
-        if _clusters_sufficiently_flat(fens, fes, el, surf, normals, spartitioning, max_normal_deviation)
+        if _clusters_sufficiently_flat(fens, fes, el, surf, normals, spartitioning, cluster_max_normal_deviation)
             # Make the partitioning numbers contiguous
             newpids = fill(0, maximum(upids))
             p = 1
