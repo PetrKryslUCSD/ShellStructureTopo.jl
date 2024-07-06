@@ -39,15 +39,20 @@ Create partitions of the triangulated boundary into clusters.
 - `fens`, `fes` = finite element mesh,
 - `elem_per_partition` = desired number of elements per partition,
 - `crease_ang` = crease angle to determine boundaries between topological faces,
-- `cluster_max_normal_deviation` = maximum deviation of the normal within the cluster.
+- `cluster_max_normal_deviation` = maximum deviation of the normal within the
+  cluster.
+- `balancefraction` = fraction of the cluster size by which the cluster can
+  deviate from the average size so that can be considered balanced.
 
 # Output
 
 - `surfids` = array of surface identifiers, one for each boundary facet
-- `partitionids` = array of partition identifiers (i.e. cluster identifiers),  one for each boundary facet
-- `surface_elem_per_partition` = dictionary of cluster sizes, indexed by the surface id
+- `partitionids` = array of partition identifiers (i.e. cluster identifiers),
+  one for each boundary facet
+- `surface_elem_per_partition` = dictionary of cluster sizes, indexed by the
+  surface id
 """
-function create_partitions(fens, fes, elem_per_partition = 50; crease_ang = 30/180*pi, cluster_max_normal_deviation = 2 * crease_ang)
+function create_partitions(fens, fes, elem_per_partition = 50; crease_ang = 30/180*pi, cluster_max_normal_deviation = 2 * crease_ang, balancefraction = 0.6)
     fens, fes = make_topo_faces(fens, fes, crease_ang)
     surfids = deepcopy(fes.label)
     uniquesurfids = unique(surfids)
@@ -58,7 +63,7 @@ function create_partitions(fens, fes, elem_per_partition = 50; crease_ang = 30/1
     cpartoffset = 0
     for surf in uniquesurfids
         el = selectelem(fens, fes, label = surf)
-        spartitioning, adjusted_elem_per_partition = _partition_surface(fens, fes, surf, el, elem_per_partition, cluster_max_normal_deviation, normals)
+        spartitioning, adjusted_elem_per_partition = _partition_surface(fens, fes, surf, el, elem_per_partition, cluster_max_normal_deviation, normals, balancefraction)
         for k in eachindex(el)
             partitionids[el[k]] = spartitioning[k] + cpartoffset
         end
@@ -121,28 +126,43 @@ function _clusters_sufficiently_flat(fens, fes, el, surf, normals, spartitioning
     return true
 end
 
-function _estimate_number_of_partitions(nel, np)
-    fraction = 0.6
-    nc = Int(floor(nel / np))
-    nc0 = nc
-    while (nel - nc * np < fraction * nc) || !(nc < nc0)
-        np += 1
-        nc = Int(floor(nel / np))
-        if np == nel 
+# function _estimate_number_of_partitions(nel, np, balancefraction = 0.6)
+#     nc = Int(floor(nel / np))
+#     nc0 = nc
+#     while (nel - nc * np < balancefraction * nc) || !(nc < nc0)
+#         np += 1
+#         nc = Int(floor(nel / np))
+#         if np == nel 
+#             break
+#         end
+#     end
+#     return min(nel, np)
+# end
+
+function _estimate_number_of_partitions(nel, np, balancefraction = 0.6)
+    nepp0 = Int(floor(nel / np))
+    nepp = nepp0
+    while (abs(nel - nepp * np) > nepp0)
+        nepp = Int(floor(nel / np))
+        if np >= nel 
+            if abs(nepp - nepp0) > balancefraction * nepp0
+                @show np = Int(floor(nel / nepp0))
+            end
             break
         end
+        np += 1
     end
     return min(nel, np)
 end
 
-function _partition_surface(fens, fes, surf, el, elem_per_partition, cluster_max_normal_deviation, normals)
+function _partition_surface(fens, fes, surf, el, elem_per_partition, cluster_max_normal_deviation, normals, balancefraction = 0.6)
     sfes = subset(fes, el)
     nel = count(sfes)
     femm1 = FEMMBase(IntegDomain(sfes, SimplexRule(2, 1)))
     C = dualconnectionmatrix(femm1, fens, 2)
     g = Metis.graph(C; check_hermitian=true)
     np = min(nel, Int(ceil(nel / elem_per_partition)))
-    np = _estimate_number_of_partitions(nel, np)
+    np = _estimate_number_of_partitions(nel, np, balancefraction)
     while true
         elem_per_partition = Int(round(nel / np))
         if np > 1
@@ -169,6 +189,6 @@ function _partition_surface(fens, fes, surf, el, elem_per_partition, cluster_max
                 return collect(1:length(el)), 1
             end
         end
-        np = _estimate_number_of_partitions(nel, np+1)
+        np = _estimate_number_of_partitions(nel, np+1, balancefraction)
     end
 end

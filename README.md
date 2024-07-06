@@ -12,4 +12,5 @@ unified across the surface mesh. The topological faces can be identified.
 
 ## News
 
+- 07/06/2024: Improve estimation of number of partitions.
 - 07/06/2024: Update for FinEtools 8.

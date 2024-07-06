@@ -1,7 +1,7 @@
 name = "ShellStructureTopo"
 uuid = "77fad3b7-27a3-4ff4-b61b-6ce40034767b"
 authors = ["Petr Krysl <pkrysl@ucsd.edu>"]
-version = "0.5.6"
+version = "0.6.0"
 
 [deps]
 DataDrop = "aa547a04-dd37-49ab-8e73-656744f8a8fc"
