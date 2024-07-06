@@ -12,3 +12,6 @@ unified across the surface mesh. The topological faces can be identified.
 ![Sample of unified normals](sample_normals50.png)
 ![Sample of detected topological faces](sample_topology50.png)
 
+## News
+
+- 07/06/2024: Update for FinEtools 8.
