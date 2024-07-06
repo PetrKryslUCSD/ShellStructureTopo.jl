@@ -97,7 +97,7 @@ function _compute_normals(fens, fes)
     for j in 1:count(fes)
         c = N' * view(fens.xyz, conns[j, :], :);
         J = view(fens.xyz, conns[j, :], :)' * gradNpar;
-        n = updatenormal!(sn, c, J, 0)
+        n = updatenormal!(sn, c, J, j, 0)
         n ./= norm(n);
         normals[j, :] = n
     end 
