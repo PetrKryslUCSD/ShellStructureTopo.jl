@@ -93,8 +93,50 @@ that provides the surface id to which the triangle belongs
 
 Make topological faces.
 
+Topological faces are assumed to be separated by either creases or non-manifold
+edges (junctions). So the boundary of topological faces consists of sheet edges,
+non-manifold edges, or crease edges.
+
 Returns
 - `t2v`: the attribute `tfid` lists the numbers of the topological faces.
+```
+
+```
+    make_topo_faces(fens::FENodeSet, fes::E, crease_ang = 30/180*pi) where {E<:AbstractFESet} 
+
+Make topological faces.
+
+Topological faces are assumed to be separated by either creases or non-manifold
+edges (junctions). So the boundary of topological faces consists of sheet edges,
+non-manifold edges, or crease edges.
+
+Returns
+- `fes`: the `fes.label` field lists the numbers of the topological faces.
+```
+
+- `create_partitions`
+```
+    create_partitions(fens, fes, elem_per_partition = 50; crease_ang = 30/180*pi, cluster_max_normal_deviation = 2 * crease_ang)
+
+Create partitions of the triangulated boundary into clusters.
+
+# Input
+
+- `fens`, `fes` = finite element mesh,
+- `elem_per_partition` = desired number of elements per partition,
+- `crease_ang` = crease angle to determine boundaries between topological faces,
+- `cluster_max_normal_deviation` = maximum deviation of the normal within the
+  cluster.
+- `balancefraction` = fraction of the cluster size by which the cluster can
+  deviate from the average size so that can be considered balanced.
+
+# Output
+
+- `surfids` = array of surface identifiers, one for each boundary facet
+- `partitionids` = array of partition identifiers (i.e. cluster identifiers),
+  one for each boundary facet
+- `surface_elem_per_partition` = dictionary of cluster sizes, indexed by the
+  surface id
 ```
 
 ## News
