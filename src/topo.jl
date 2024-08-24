@@ -112,13 +112,9 @@ function _normal(c, geom)
     return n
 end
 
-"""
-    _classify_mesh_edges(t2v, e2t, crease_ang)
-
-Classify mesh edges as on/not on topological edge.
-
-- `e2t`: the attribute `isonte` 
-"""
+#     _classify_mesh_edges(t2v, e2t, crease_ang)
+# Classify mesh edges as on/not on topological edge.
+# - `e2t`: the attribute `isonte` 
 function _classify_mesh_edges(t2v, e2t, crease_ang)
     cada = cos(crease_ang);
     geom = attribute(t2v.right, "geom")
