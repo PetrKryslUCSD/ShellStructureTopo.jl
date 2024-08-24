@@ -65,6 +65,38 @@ The classification into topological faces and the partitioning may then be viewe
 VTK.vtkexportmesh("mt016_part.vtk", connasarray(fes), fens.xyz, VTK.T3; scalars=[("topological_face", surfids), ("partitioning", partitionids)]);
 ```
 
+## Reference manual
+
+- `orient_surface_mesh`
+```
+    orient_surface_mesh(t2v)
+
+Orient surface mesh.
+
+Return
+- `orientedt2v`: oriented incidence relation
+- `orientable`: Can the surface mesh be oriented? Bool flag.
+    This would be false for a Mobius strip, for instance.
+
+This is a purely topological operation. Creases in the surface are not
+recognized as edges. The operation proceeds by flooding the surface across
+manifold edges, stopping at sheet or non-manifold edges.
+
+The incidence relation `orientedt2v` includes an attribute for each triangle
+that provides the surface id to which the triangle belongs
+(`orientedt2v.left.attributes["surfid"]`).
+```
+
+- `make_topo_faces`
+```
+    make_topo_faces(t2v, crease_ang = 30/180*pi)
+
+Make topological faces.
+
+Returns
+- `t2v`: the attribute `tfid` lists the numbers of the topological faces.
+```
+
 ## News
 
 - 07/06/2024: Improve estimation of number of partitions.
