@@ -5,12 +5,16 @@ using LinearAlgebra
 using FinEtools.MeshExportModule: VTK
 
 """
-    make_topo_faces(t2v, e2t)
+    make_topo_faces(fens::FENodeSet, fes::E, crease_ang = 30/180*pi) where {E<:AbstractFESet} 
 
 Make topological faces.
 
+Topological faces are assumed to be separated by either creases or non-manifold
+edges (junctions). So the boundary of topological faces consists of sheet edges,
+non-manifold edges, or crease edges.
+
 Returns
-- `t2v`: the attribute `tfid` lists the numbers of the topological faces.
+- `fes`: the `fes.label` field lists the numbers of the topological faces.
 """
 function make_topo_faces(fens::FENodeSet, fes::E, crease_ang = 30/180*pi) where {E<:AbstractFESet} 
     t2v = _to_core(fens, fes)

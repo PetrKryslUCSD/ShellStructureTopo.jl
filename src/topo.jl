@@ -155,6 +155,10 @@ end
 
 Make topological faces.
 
+Topological faces are assumed to be separated by either creases or non-manifold
+edges (junctions). So the boundary of topological faces consists of sheet edges,
+non-manifold edges, or crease edges.
+
 Returns
 - `t2v`: the attribute `tfid` lists the numbers of the topological faces.
 """

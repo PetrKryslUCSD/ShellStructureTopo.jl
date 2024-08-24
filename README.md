@@ -116,7 +116,9 @@ Returns
 
 - `create_partitions`
 ```
-    create_partitions(fens, fes, elem_per_partition = 50; crease_ang = 30/180*pi, cluster_max_normal_deviation = 2 * crease_ang)
+    create_partitions(fens, fes, elem_per_partition = 50; 
+        crease_ang = 30/180*pi, 
+        cluster_max_normal_deviation = 2 * crease_ang)
 
 Create partitions of the triangulated boundary into clusters.
 
