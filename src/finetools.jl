@@ -34,7 +34,9 @@ function _to_core(fens::FENodeSet, fes::E) where {E<:AbstractFESet}
 end
 
 """
-    create_partitions(fens, fes, elem_per_partition = 50; crease_ang = 30/180*pi, cluster_max_normal_deviation = 2 * crease_ang)
+    create_partitions(fens, fes, elem_per_partition = 50; 
+        crease_ang = 30/180*pi, cluster_max_normal_deviation = 2 * crease_ang, 
+        balancefraction = 0.6, randomize = false)
 
 Create partitions of the triangulated boundary into clusters.
 
@@ -47,6 +49,7 @@ Create partitions of the triangulated boundary into clusters.
   cluster.
 - `balancefraction` = fraction of the cluster size by which the cluster can
   deviate from the average size so that can be considered balanced.
+- `randomize` = randomize the order of the partitions for output.
 
 # Output
 
@@ -56,7 +59,7 @@ Create partitions of the triangulated boundary into clusters.
 - `surface_elem_per_partition` = dictionary of cluster sizes, indexed by the
   surface id
 """
-function create_partitions(fens, fes, elem_per_partition = 50; crease_ang = 30/180*pi, cluster_max_normal_deviation = 2 * crease_ang, balancefraction = 0.6)
+function create_partitions(fens, fes, elem_per_partition = 50; crease_ang = 30/180*pi, cluster_max_normal_deviation = 2 * crease_ang, balancefraction = 0.6, randomize = false)
     fens, fes = make_topo_faces(fens, fes, crease_ang)
     surfids = deepcopy(fes.label)
     uniquesurfids = unique(surfids)
@@ -74,24 +77,26 @@ function create_partitions(fens, fes, elem_per_partition = 50; crease_ang = 30/1
         cpartoffset += length(unique(spartitioning))
         surface_elem_per_partition[surf] = adjusted_elem_per_partition
     end 
-    # Randomize the surface ids
-    prmtd = randperm(length(uniquesurfids))
-    for k in eachindex(surfids)
-        surfids[k] = prmtd[surfids[k]]
+    if randomize
+        # Randomize the surface ids
+        prmtd = randperm(length(uniquesurfids))
+        for k in eachindex(surfids)
+            surfids[k] = prmtd[surfids[k]]
+        end
+        permuted_surface_elem_per_partition = Dict()
+        for k in uniquesurfids
+            permuted_surface_elem_per_partition[prmtd[k]] = surface_elem_per_partition[k]
+        end
+        surface_elem_per_partition = permuted_surface_elem_per_partition
+        permuted_surface_elem_per_partition = nothing
+        # Randomize the partition ids
+        pnumbers = unique(partitionids)
+        prmtd = randperm(length(pnumbers))
+        for k in eachindex(partitionids)
+            partitionids[k] = prmtd[partitionids[k]]
+        end
+        # npanelgroups = length(unique(partitionids))
     end
-    permuted_surface_elem_per_partition = Dict()
-    for k in uniquesurfids
-        permuted_surface_elem_per_partition[prmtd[k]] = surface_elem_per_partition[k]
-    end
-    surface_elem_per_partition = permuted_surface_elem_per_partition
-    permuted_surface_elem_per_partition = nothing
-    # Randomize the partition ids
-    pnumbers = unique(partitionids)
-    prmtd = randperm(length(pnumbers))
-    for k in eachindex(partitionids)
-        partitionids[k] = prmtd[partitionids[k]]
-    end
-    # npanelgroups = length(unique(partitionids))
     return surfids, partitionids, surface_elem_per_partition
 end
 
@@ -113,13 +118,16 @@ function _compute_normals(fens, fes)
     return normals
 end
 
+# To do: make this function more efficient. Testing each normal against all
+# other normals is not efficient. There must be something about the cone of
+# normals that one can use?
 function _clusters_sufficiently_flat(fens, fes, el, surf, normals, spartitioning, cluster_max_normal_deviation)
     upids = unique(spartitioning)
     cmnd = cos(cluster_max_normal_deviation)
     # Now go through the partitions
     for p in upids
         pel = [el[k] for k in eachindex(spartitioning) if spartitioning[k] == p]
-        for i in 1:length(pel)
+        for i in eachindex(pel)
             for j in i+1:length(pel)
                 if dot(view(normals, pel[i], :), view(normals, pel[j], :)) < cmnd
                     return false
@@ -129,19 +137,6 @@ function _clusters_sufficiently_flat(fens, fes, el, surf, normals, spartitioning
     end
     return true
 end
-
-# function _estimate_number_of_partitions(nel, np, balancefraction = 0.6)
-#     nc = Int(floor(nel / np))
-#     nc0 = nc
-#     while (nel - nc * np < balancefraction * nc) || !(nc < nc0)
-#         np += 1
-#         nc = Int(floor(nel / np))
-#         if np == nel 
-#             break
-#         end
-#     end
-#     return min(nel, np)
-# end
 
 function _estimate_number_of_partitions(nel, np, balancefraction = 0.6)
     nepp0 = Int(floor(nel / np))

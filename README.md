@@ -117,8 +117,9 @@ Returns
 - `create_partitions`
 ```
     create_partitions(fens, fes, elem_per_partition = 50; 
-        crease_ang = 30/180*pi, 
-        cluster_max_normal_deviation = 2 * crease_ang)
+      crease_ang = 30/180*pi, 
+      cluster_max_normal_deviation = 2 * crease_ang,
+      balancefraction = 0.6, randomize = false)
 
 Create partitions of the triangulated boundary into clusters.
 
@@ -143,5 +144,6 @@ Create partitions of the triangulated boundary into clusters.
 
 ## News
 
+- 12/05/2024: Make the randomization optional.
 - 07/06/2024: Improve estimation of number of partitions.
 - 07/06/2024: Update for FinEtools 8.
