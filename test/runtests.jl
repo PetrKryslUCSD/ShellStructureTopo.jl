@@ -50,6 +50,10 @@ end
 # test()
 # end
 
+@testset "Randomization Tests" begin
+    include("test_random.jl")
+end
+
 @testset "All Tests" begin
     include("test_all.jl")
 end

@@ -36,7 +36,7 @@ end
 """
     create_partitions(fens, fes, elem_per_partition = 50; 
         crease_ang = 30/180*pi, cluster_max_normal_deviation = 2 * crease_ang, 
-        balancefraction = 0.6, randomize = false)
+        balancefraction = 0.6)
 
 Create partitions of the triangulated boundary into clusters.
 
@@ -49,7 +49,6 @@ Create partitions of the triangulated boundary into clusters.
   cluster.
 - `balancefraction` = fraction of the cluster size by which the cluster can
   deviate from the average size so that can be considered balanced.
-- `randomize` = randomize the order of the partitions for output.
 
 # Output
 
@@ -59,7 +58,10 @@ Create partitions of the triangulated boundary into clusters.
 - `surface_elem_per_partition` = dictionary of cluster sizes, indexed by the
   surface id
 """
-function create_partitions(fens, fes, elem_per_partition = 50; crease_ang = 30/180*pi, cluster_max_normal_deviation = 2 * crease_ang, balancefraction = 0.6, randomize = false)
+function create_partitions(fens, fes, elem_per_partition=50;
+    crease_ang=30 / 180 * pi,
+    cluster_max_normal_deviation=2 * crease_ang,
+    balancefraction=0.6)
     fens, fes = make_topo_faces(fens, fes, crease_ang)
     surfids = deepcopy(fes.label)
     uniquesurfids = unique(surfids)
@@ -77,29 +79,37 @@ function create_partitions(fens, fes, elem_per_partition = 50; crease_ang = 30/1
         cpartoffset += length(unique(spartitioning))
         surface_elem_per_partition[surf] = adjusted_elem_per_partition
     end 
-    if randomize
-        # Randomize the surface ids
-        prmtd = randperm(length(uniquesurfids))
-        for k in eachindex(surfids)
-            surfids[k] = prmtd[surfids[k]]
-        end
-        permuted_surface_elem_per_partition = Dict()
-        for k in uniquesurfids
-            permuted_surface_elem_per_partition[prmtd[k]] = surface_elem_per_partition[k]
-        end
-        surface_elem_per_partition = permuted_surface_elem_per_partition
-        permuted_surface_elem_per_partition = nothing
-        # Randomize the partition ids
-        pnumbers = unique(partitionids)
-        prmtd = randperm(length(pnumbers))
-        for k in eachindex(partitionids)
-            partitionids[k] = prmtd[partitionids[k]]
-        end
-        # npanelgroups = length(unique(partitionids))
-    end
     return surfids, partitionids, surface_elem_per_partition
 end
 
+"""
+    randomize(surfids, partitionids, surface_elem_per_partition, rng = Random.Xoshiro(123))
+
+Randomize the surface ids, the partition ids, and update the surface element
+for partition counts.
+"""
+function randomize(surfids, partitionids, surface_elem_per_partition; rng = Random.Xoshiro(123))
+    uniquesurfids = unique(surfids)
+    # Randomize the surface ids
+    prmtd = randperm(rng, length(uniquesurfids))
+    for k in eachindex(surfids)
+        surfids[k] = prmtd[surfids[k]]
+    end
+    permuted_surface_elem_per_partition = Dict()
+    for k in uniquesurfids
+        permuted_surface_elem_per_partition[prmtd[k]] = surface_elem_per_partition[k]
+    end
+    surface_elem_per_partition = permuted_surface_elem_per_partition
+    permuted_surface_elem_per_partition = nothing
+    # Randomize the partition ids
+    pnumbers = unique(partitionids)
+    prmtd = randperm(rng, length(pnumbers))
+    for k in eachindex(partitionids)
+        partitionids[k] = prmtd[partitionids[k]]
+    end
+    # npanelgroups = length(unique(partitionids))
+    return surfids, partitionids, surface_elem_per_partition
+end
 
 function _compute_normals(fens, fes)
     sn = SurfaceNormal(size(fens.xyz, 2))
